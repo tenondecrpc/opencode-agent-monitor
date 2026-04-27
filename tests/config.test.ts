@@ -17,15 +17,23 @@ describe("resolveConfig", () => {
     expect(config.logPath).toBe(path.resolve("/tmp/project", "custom.log"))
   })
 
-  test("rejects absolute log paths outside project directory (security)", () => {
-    // Absolute paths outside the project directory should be rejected
-    // and reset to the default path within the project
+  test("accepts absolute log paths outside project directory", () => {
+    // Absolute paths are now accepted — user explicitly chose that location.
     const config = resolveConfig(
       { logPath: "/var/log/opencode/monitor.log" },
       "/tmp/project"
     )
+    expect(config.logPath).toBe("/var/log/opencode/monitor.log")
+  })
+
+  test("expands tilde (~) to home directory", () => {
+    const home = process.env.HOME || ""
+    const config = resolveConfig(
+      { logPath: "~/.config/opencode/agent-monitor.log" },
+      "/tmp/project"
+    )
     expect(config.logPath).toBe(
-      path.join("/tmp/project", ".config", "opencode", "agent-monitor.log")
+      path.join(home, ".config", "opencode", "agent-monitor.log")
     )
   })
 
@@ -41,7 +49,7 @@ describe("resolveConfig", () => {
   test("uses default log path when not specified", () => {
     const config = resolveConfig({}, "/tmp/project")
     expect(config.logPath).toBe(
-      path.join("/tmp/project", ".config", "opencode", "agent-monitor.log")
+      path.join("/tmp/project", ".opencode", "agent-monitor.log")
     )
   })
 
@@ -77,7 +85,7 @@ describe("resolveConfig", () => {
   test("uses process.cwd() as default directory", () => {
     const config = resolveConfig({})
     expect(config.logPath).toBe(
-      path.join(process.cwd(), ".config", "opencode", "agent-monitor.log")
+      path.join(process.cwd(), ".opencode", "agent-monitor.log")
     )
   })
 

@@ -4,12 +4,7 @@ import path from "node:path"
 import { AgentMonitor } from "../src/index.js"
 
 const TEST_DIR = path.join(process.cwd(), ".test-plugin-integration")
-const TEST_LOG_PATH = path.join(
-  TEST_DIR,
-  ".config",
-  "opencode",
-  "agent-monitor.log"
-)
+const TEST_LOG_PATH = path.join(TEST_DIR, ".opencode", "agent-monitor.log")
 
 beforeEach(async () => {
   await fs.mkdir(TEST_DIR, { recursive: true })

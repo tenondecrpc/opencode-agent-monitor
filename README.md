@@ -53,13 +53,10 @@ npm run build
 2. Copy the built plugin to your OpenCode plugins directory:
 
 ```bash
-# Project-level (preferred — uses .config/opencode if it exists)
-cp dist/index.js .config/opencode/plugins/agent-monitor.js
-
-# Or legacy location
+# Project-level (inside your project's .opencode/ directory)
 cp dist/index.js .opencode/plugins/agent-monitor.js
 
-# Or global
+# Or global (shared across all projects — in your home directory)
 cp dist/index.js ~/.config/opencode/plugins/agent-monitor.js
 ```
 
@@ -83,14 +80,64 @@ Then reference the source file in your config:
 
 ## Usage
 
-Once installed, the plugin automatically starts monitoring. Logs are written to:
+Once installed, the plugin automatically starts monitoring. Logs are written **inside the project/repo where OpenCode is running** — not in the global OpenCode config directory.
+
+### Where logs are stored
+
+OpenCode has two levels of config directories. The plugin uses the **project-level** directory for logs:
+
+| Directory              | Scope                             | Purpose                                                                                                |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `~/.config/opencode/`  | **Global** (home directory)       | OpenCode CLI global config — providers, models, TUI settings. **The plugin does NOT write logs here.** |
+| `<project>/.opencode/` | **Per-project** (inside the repo) | Project-level agents, commands, plugins. **This is where the plugin writes logs by default.**          |
+
+**Default log location:**
 
 ```
-.config/opencode/agent-monitor.log   (preferred — if .config/opencode/ exists)
-.opencode/agent-monitor.log          (legacy fallback — if .opencode/ exists)
+<your-project>/.opencode/agent-monitor.log
 ```
 
-The plugin checks for `.config/opencode/` first. If it doesn't exist, it falls back to `.opencode/`. If neither directory exists, a warning is logged to stderr and `.config/opencode/` is used as the default.
+**Real example:** if you run OpenCode in `~/projects/my-app/`, the log file will be:
+
+```
+~/projects/my-app/.opencode/agent-monitor.log
+```
+
+Each project gets its own log file. Logs are never shared across projects.
+
+### How the plugin resolves config
+
+The plugin loads configuration from multiple sources. **Project-level config always takes priority over global config:**
+
+| Priority | Location | Purpose |
+|---|---|---|
+| 1 (highest) | `<project>/.opencode/agent-monitor.json` | Project-specific settings — overrides everything |
+| 2 | `<project>/.config/opencode/agent-monitor.json` | Alternative project location |
+| 3 | `~/.config/opencode/agent-monitor.json` | Global defaults — shared across all projects |
+| 4 (lowest) | Built-in defaults | Sensible, secure defaults |
+
+This means you can set global defaults in `~/.config/opencode/agent-monitor.json` and override them per-project in `<project>/.opencode/agent-monitor.json`.
+
+> **Important:** `~/.config/opencode/` is the **global** OpenCode config in your home directory. `<project>/.config/opencode/` is a directory inside your project (rarely used). Most projects only have `.opencode/` at the root.
+
+### Log File Permissions
+
+The plugin automatically manages file and directory permissions for security:
+
+| Resource                                    | Permission | Meaning                                      |
+| ------------------------------------------- | ---------- | -------------------------------------------- |
+| Log directory (`.opencode/` inside project) | `0o700`    | Only the owner can read, write, and traverse |
+| Log file (`agent-monitor.log`)              | `0o600`    | Only the owner can read and write            |
+
+**Can I use a different log location?** Yes. Set `"logPath"` in your config to any path. The plugin creates the directory if it doesn't exist and sets restricted permissions automatically.
+
+**Supported path formats:**
+
+| Format | Example | Resolves to |
+|---|---|---|
+| Relative | `".opencode/agent-monitor.log"` | `<project>/.opencode/agent-monitor.log` |
+| Tilde (~) | `"~/.config/opencode/agent-monitor.log"` | Your home directory |
+| Absolute | `"/var/log/my-monitor.log"` | Exact path (as-is) |
 
 ### Log Format
 
@@ -104,21 +151,26 @@ Each line is a JSON object:
 
 ### Analyzing Logs
 
-Use `jq` or any JSON-line parser to analyze logs:
+Use `jq` or any JSON-line parser to analyze logs. All examples below show the **10 most recent entries** (newest first):
 
 ```bash
-# View all routing mismatches (adjust path to your config location)
-jq 'select(.type == "routing.mismatch")' .config/opencode/agent-monitor.log
+# View the 10 most recent routing mismatches
+jq 'select(.type == "routing.mismatch")' .opencode/agent-monitor.log | tac | head -n 40
 
 # Count tool usage by tool name
-jq -r 'select(.type | startswith("tool.")) | .tool' .config/opencode/agent-monitor.log | sort | uniq -c | sort -rn
+jq -r 'select(.type | startswith("tool.")) | .tool' .opencode/agent-monitor.log | sort | uniq -c | sort -rn | head -10
 
-# View all permission requests
-jq 'select(.type | startswith("permission."))' .config/opencode/agent-monitor.log
+# View the 10 most recent permission requests
+jq 'select(.type | startswith("permission."))' .opencode/agent-monitor.log | tac | head -n 40
 
-# Filter by session
-jq 'select(.sessionID == "your-session-id")' .config/opencode/agent-monitor.log
+# View the 10 most recent entries for a specific session
+jq 'select(.sessionID == "your-session-id")' .opencode/agent-monitor.log | tac | head -n 40
+
+# View the 10 most recent log entries of any type
+tac .opencode/agent-monitor.log | head -10 | jq '.'
 ```
+
+> **Tip:** `tac` reverses the file (newest lines first) and `head -10` limits output. Since each JSON object spans one line in the log file, `tac | head -10` gives you the 10 most recent entries. For filtered queries, pipe through `tac | head -n 40` (40 lines ≈ 10 JSON objects) to avoid loading the entire file.
 
 ## Configuration
 
@@ -126,12 +178,19 @@ The plugin works with zero configuration. All settings use secure defaults.
 
 ### Quick Start: Simple JSON Config (No Code Required)
 
-Create a `agent-monitor.json` file in your OpenCode config directory:
+**Global config** (shared across all projects):
 
-- **Preferred**: `.config/opencode/agent-monitor.json`
-- **Legacy**: `.opencode/agent-monitor.json`
+```
+~/.config/opencode/agent-monitor.json
+```
 
-The plugin checks `.config/opencode/` first, then falls back to `.opencode/`.
+**Project config** (overrides global for this project only):
+
+```
+<your-project>/.opencode/agent-monitor.json
+```
+
+Project config always takes priority over global config. If both exist, they are merged with project settings winning.
 
 ```json
 {
@@ -144,6 +203,7 @@ The plugin checks `.config/opencode/` first, then falls back to `.opencode/`.
 ```
 
 That's it. The plugin will:
+
 1. **Auto-detect your agents** from `opencode.json` and `.opencode/agents/*.md`
 2. **Analyze their descriptions and prompts** to figure out what domains they handle
 3. **Generate agent-to-domain mappings** automatically
@@ -151,10 +211,20 @@ That's it. The plugin will:
 
 ### Full JSON Config Options
 
+> **Note:** You don't need this file to get started. The plugin works with zero configuration — just install it and logs are written automatically. Only create `agent-monitor.json` if you want to override defaults.
+
+**Config resolution order** (later sources override earlier ones):
+
+1. `~/.config/opencode/agent-monitor.json` — global defaults
+2. `<project>/.opencode/agent-monitor.json` — project overrides
+3. `<project>/.config/opencode/agent-monitor.json` — alternative project location
+4. `userConfig` — programmatic config (if using a TypeScript wrapper)
+
+**About `logPath`:** This field is **optional**. If omitted, logs go to `<project>/.opencode/agent-monitor.log`. If you set it, any path is accepted — relative (resolved against project), absolute, or tilde-prefixed (`~`).
+
 ```json
 {
   "enabled": true,
-  "logPath": ".config/opencode/agent-monitor.log",
   "maxLogSize": 10485760,
   "maxRotatedFiles": 5,
   "enableDomainDetection": true,
@@ -186,15 +256,25 @@ That's it. The plugin will:
 }
 ```
 
+**Example with explicit `logPath`:**
+
+```json
+// Write logs to your global OpenCode config directory (shared across projects)
+{ "logPath": "~/.config/opencode/agent-monitor.log" }
+
+// Or keep it project-local (default behavior)
+{ "logPath": ".opencode/agent-monitor.log" }
+```
+
 ### Display Options
 
 The plugin has three levels of visibility, from always-on to optional:
 
-| Level | What | Default | Configurable? |
-|---|---|---|---|
-| **File logging** | All events written to `.config/opencode/agent-monitor.log` (or `.opencode/agent-monitor.log` as fallback) | ✅ Always on | No (mandatory) |
-| **Structured logging** | Events sent to OpenCode's internal log viewer via `client.app.log()` | ✅ On | Yes |
-| **Toast notifications** | Brief pop-up messages in the TUI for important events | ✅ On | Yes |
+| Level                   | What                                                                 | Default      | Configurable?  |
+| ----------------------- | -------------------------------------------------------------------- | ------------ | -------------- |
+| **File logging**        | All events written to `<project>/.opencode/agent-monitor.log`        | ✅ Always on | No (mandatory) |
+| **Structured logging**  | Events sent to OpenCode's internal log viewer via `client.app.log()` | ✅ On        | Yes            |
+| **Toast notifications** | Brief pop-up messages in the TUI for important events                | ✅ On        | Yes            |
 
 #### Toast Notifications
 
@@ -233,7 +313,7 @@ When enabled (default), events are sent to OpenCode's internal logging system. T
 When `autoDetectAgents` is `true` (default), the plugin:
 
 1. **Reads `opencode.json`** — finds all agents in the `"agent"` section
-2. **Reads agent markdown files** — finds agents in `.config/opencode/agents/*.md` (preferred) or `.opencode/agents/*.md` (legacy)
+2. **Reads agent markdown files** — finds agents in `<project>/.opencode/agents/*.md` (or `~/.config/opencode/agents/*.md` for globally-defined agents)
 3. **Analyzes descriptions and prompts** — uses the domain detection engine to figure out what each agent does
 4. **Generates mappings** — creates `agentName → domains` mappings automatically
 
@@ -261,9 +341,7 @@ Auto-detected mappings are merged with manually configured ones. **Manual mappin
 ```json
 {
   "autoDetectAgents": true,
-  "agentMappings": [
-    { "agentName": "my-agent", "domains": ["custom-domain"] }
-  ]
+  "agentMappings": [{ "agentName": "my-agent", "domains": ["custom-domain"] }]
 }
 ```
 
@@ -281,28 +359,28 @@ When disabled, only manually configured `agentMappings` are used. If no mappings
 
 ### Basic Options
 
-| Option | Default | Description |
-|---|---|---|
-| `enabled` | `true` | Enable or disable the monitor |
-| `logPath` | `.config/opencode/agent-monitor.log` (or `.opencode/agent-monitor.log` as fallback) | Path to the log file |
-| `maxLogSize` | `10485760` (10 MB) | Max log file size before rotation (0 = disabled) |
-| `maxRotatedFiles` | `5` | Number of rotated log files to keep |
-| `enableDomainDetection` | `true` | Enable domain detection and routing analysis |
-| `enableToolTracking` | `true` | Enable tool usage tracking |
-| `enablePermissionTracking` | `true` | Enable permission request tracking |
-| `enableSessionTracking` | `true` | Enable session lifecycle tracking |
-| `redactSensitiveData` | `true` | Redact secrets, keys, and tokens from logs |
-| `logLevel` | `"info"` | Log level for structured logging |
-| `emitRoutingWarnings` | `true` | Emit warnings for routing mismatches |
-| `excludedTools` | `[]` | Tools to exclude from tracking |
+| Option                     | Default            | Description                                                                                                                                                                                                                                                                                          |
+| -------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`                  | `true`             | Enable or disable the monitor                                                                                                                                                                                                                                                                        |
+| `logPath` | `<project>/.opencode/agent-monitor.log` | **Optional.** Relative paths resolve against the project root. Tilde (`~`) expands to home. Absolute paths are used as-is. |
+| `maxLogSize`               | `10485760` (10 MB) | Max log file size before rotation (0 = disabled)                                                                                                                                                                                                                                                     |
+| `maxRotatedFiles`          | `5`                | Number of rotated log files to keep                                                                                                                                                                                                                                                                  |
+| `enableDomainDetection`    | `true`             | Enable domain detection and routing analysis                                                                                                                                                                                                                                                         |
+| `enableToolTracking`       | `true`             | Enable tool usage tracking                                                                                                                                                                                                                                                                           |
+| `enablePermissionTracking` | `true`             | Enable permission request tracking                                                                                                                                                                                                                                                                   |
+| `enableSessionTracking`    | `true`             | Enable session lifecycle tracking                                                                                                                                                                                                                                                                    |
+| `redactSensitiveData`      | `true`             | Redact secrets, keys, and tokens from logs                                                                                                                                                                                                                                                           |
+| `logLevel`                 | `"info"`           | Log level for structured logging                                                                                                                                                                                                                                                                     |
+| `emitRoutingWarnings`      | `true`             | Emit warnings for routing mismatches                                                                                                                                                                                                                                                                 |
+| `excludedTools`            | `[]`               | Tools to exclude from tracking                                                                                                                                                                                                                                                                       |
 
 ### TypeScript Configuration (Advanced)
 
 For full programmatic control, create a plugin wrapper in TypeScript:
 
 ```typescript
-// .config/opencode/plugins/agent-monitor.ts (preferred)
-// or .opencode/plugins/agent-monitor.ts (legacy)
+// <your-project>/.opencode/plugins/agent-monitor.ts (project-level)
+// or ~/.config/opencode/plugins/agent-monitor.ts (global)
 import { AgentMonitor } from "opencode-agent-monitor"
 import {
   resolveConfigAsync,
@@ -354,12 +432,16 @@ For manual configuration, use the JSON config file:
     { "agentName": "my-ui-specialist", "domains": ["frontend", "vision"] },
     { "agentName": "api-builder", "domains": ["backend"] },
     { "agentName": "cloud-deployer", "domains": ["cloud", "security"] },
-    { "agentName": "fullstack-dev", "domains": ["frontend", "backend", "cloud"] }
+    {
+      "agentName": "fullstack-dev",
+      "domains": ["frontend", "backend", "cloud"]
+    }
   ]
 }
 ```
 
 With these mappings:
+
 - If a task about "React components" is given to `my-ui-specialist` → **no mismatch** (handles frontend)
 - If a task about "React components" is given to `api-builder` → **mismatch** (doesn't handle frontend)
 - If a task about "React + Docker" is given to `fullstack-dev` → **no mismatch** (handles both)
@@ -375,19 +457,19 @@ If you don't configure `agentMappings` and auto-detection finds no agents, the p
 
 These domains ship as defaults but are **not enforced as types**. You can use any domain name you want.
 
-| Domain | Sample Keywords |
-|---|---|
-| `frontend` | React, Vue, CSS, UI, responsive, accessibility, component, layout |
-| `backend` | API, REST, GraphQL, database, route, controller, service, webhook |
-| `cloud` | AWS, GCP, Azure, Docker, Kubernetes, Terraform, CI/CD, deploy |
-| `security` | IAM, secrets, encryption, vulnerability, OWASP, OAuth, JWT, RBAC |
-| `architect` | Design pattern, SOLID, microservice, DDD, scalability, coupling |
-| `qa` | Test, Jest, Cypress, regression, coverage, edge case, E2E |
-| `documenter` | README, docs, changelog, migration, runbook, tutorial |
-| `refiner` | Refactor, cleanup, lint, formatting, naming, dead code |
-| `explore` | Search, discover, dependency, trace, convention, map |
-| `vision` | Screenshot, image, visual, mockup, design, Figma |
-| `general` | Summary, rewrite, utility, helper, script, automation |
+| Domain       | Sample Keywords                                                   |
+| ------------ | ----------------------------------------------------------------- |
+| `frontend`   | React, Vue, CSS, UI, responsive, accessibility, component, layout |
+| `backend`    | API, REST, GraphQL, database, route, controller, service, webhook |
+| `cloud`      | AWS, GCP, Azure, Docker, Kubernetes, Terraform, CI/CD, deploy     |
+| `security`   | IAM, secrets, encryption, vulnerability, OWASP, OAuth, JWT, RBAC  |
+| `architect`  | Design pattern, SOLID, microservice, DDD, scalability, coupling   |
+| `qa`         | Test, Jest, Cypress, regression, coverage, edge case, E2E         |
+| `documenter` | README, docs, changelog, migration, runbook, tutorial             |
+| `refiner`    | Refactor, cleanup, lint, formatting, naming, dead code            |
+| `explore`    | Search, discover, dependency, trace, convention, map              |
+| `vision`     | Screenshot, image, visual, mockup, design, Figma                  |
+| `general`    | Summary, rewrite, utility, helper, script, automation             |
 
 ## Security
 
@@ -465,8 +547,8 @@ npm test
 
 1. Update version in `package.json`
 2. Create a git tag: `git tag v1.0.0`
-4. Push the tag: `git push origin v1.0.0`
-5. The release workflow will publish to npm automatically
+3. Push the tag: `git push origin v1.0.0`
+4. The release workflow will publish to npm automatically
 
 ## Contributing
 
