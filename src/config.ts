@@ -1,4 +1,3 @@
-import fs from "node:fs"
 import fsAsync from "node:fs/promises"
 import path from "node:path"
 import type {
@@ -9,42 +8,71 @@ import type {
 import { DEFAULT_CONFIG, DEFAULT_DOMAIN_DEFINITIONS } from "./types.js"
 import type { AgentMonitorJsonConfig } from "./json-config.js"
 import { discoverAgents, generateAgentMappings } from "./agent-discovery.js"
-import { resolveOpenCodeDir } from "./utils.js"
 import { isSafeRegexPattern } from "./domain-detector.js"
 // Re-exported from separate module to break circular dependency
 export { getAgentDomains } from "./agent-mapping-utils.js"
 
 /**
- * Load the JSON config file from .config/opencode/agent-monitor.json
- * (preferred) or .opencode/agent-monitor.json (legacy fallback).
- * Returns null if the file doesn't exist or is invalid.
+ * Load the JSON config file from multiple sources.
+ *
+ * Config resolution order (later sources override earlier ones):
+ * 1. Global config: ~/.config/opencode/agent-monitor.json (base layer)
+ * 2. Project config: <project>/.opencode/agent-monitor.json (overrides global)
+ * 3. Project config alt: <project>/.config/opencode/agent-monitor.json (fallback)
+ *
+ * Project-level config always takes priority over global config.
+ * Returns null if no config file is found.
  */
 async function loadJsonConfig(
   projectDir: string
 ): Promise<AgentMonitorJsonConfig | null> {
-  const resolved = await resolveOpenCodeDir(projectDir)
-
-  // Try preferred location first
-  const preferredPath = path.join(resolved.dir, "agent-monitor.json")
+  // Step 1: Load global config (base layer)
+  const homeDir = process.env.HOME || process.env.USERPROFILE || ""
+  const globalPath = path.join(
+    homeDir,
+    ".config",
+    "opencode",
+    "agent-monitor.json"
+  )
+  let globalConfig: AgentMonitorJsonConfig | null = null
   try {
-    const content = await fsAsync.readFile(preferredPath, "utf-8")
-    return JSON.parse(content) as AgentMonitorJsonConfig
+    const content = await fsAsync.readFile(globalPath, "utf-8")
+    globalConfig = JSON.parse(content) as AgentMonitorJsonConfig
   } catch {
-    // File not found in preferred location, try legacy
+    // Global config not found or invalid — that's fine
   }
 
-  // Try legacy .opencode/ location
-  const legacyPath = path.join(projectDir, ".opencode", "agent-monitor.json")
-  if (legacyPath !== preferredPath) {
-    try {
-      const content = await fsAsync.readFile(legacyPath, "utf-8")
-      return JSON.parse(content) as AgentMonitorJsonConfig
-    } catch {
-      return null
+  // Step 2: Load project-level config (overrides global)
+  // Check .opencode/ first (most common project location)
+  let projectConfig: AgentMonitorJsonConfig | null = null
+  const opencodePath = path.join(projectDir, ".opencode", "agent-monitor.json")
+  try {
+    const content = await fsAsync.readFile(opencodePath, "utf-8")
+    projectConfig = JSON.parse(content) as AgentMonitorJsonConfig
+  } catch {
+    // Check .config/opencode/ as alternative project location
+    const configOpencodePath = path.join(
+      projectDir,
+      ".config",
+      "opencode",
+      "agent-monitor.json"
+    )
+    if (configOpencodePath !== opencodePath) {
+      try {
+        const content = await fsAsync.readFile(configOpencodePath, "utf-8")
+        projectConfig = JSON.parse(content) as AgentMonitorJsonConfig
+      } catch {
+        // No project config found
+      }
     }
   }
 
-  return null
+  // Step 3: Merge — project overrides global
+  if (projectConfig && globalConfig) {
+    return { ...globalConfig, ...projectConfig }
+  }
+
+  return projectConfig || globalConfig
 }
 
 /**
@@ -125,11 +153,12 @@ function compileDomainPatterns(domains: DomainDefinition[]): void {
  * Resolve and validate the plugin configuration.
  *
  * Configuration is loaded from multiple sources in this order:
- * 1. .config/opencode/agent-monitor.json (preferred) or
- *    .opencode/agent-monitor.json (legacy fallback)
- * 2. userConfig parameter (programmatic config)
- * 3. Auto-discovery from OpenCode's agent configuration
- * 4. Built-in defaults
+ * 1. Global config: ~/.config/opencode/agent-monitor.json (base layer)
+ * 2. Project config: <project>/.opencode/agent-monitor.json (overrides global)
+ * 3. Project config alt: <project>/.config/opencode/agent-monitor.json
+ * 4. userConfig parameter (programmatic config, overrides all JSON)
+ * 5. Auto-discovery from OpenCode's agent configuration
+ * 6. Built-in defaults
  *
  * Later sources override earlier ones.
  */
@@ -137,7 +166,7 @@ export async function resolveConfigAsync(
   userConfig: Partial<AgentMonitorConfig> = {},
   projectDir: string = process.cwd()
 ): Promise<AgentMonitorConfig> {
-  // Step 1: Load JSON config file
+  // Step 1: Load JSON config file (global + project merged)
   const jsonConfig = await loadJsonConfig(projectDir)
   const jsonInternal = jsonConfig
     ? jsonToInternalConfig(jsonConfig, projectDir)
@@ -149,9 +178,8 @@ export async function resolveConfigAsync(
     ...userConfig,
   }
 
-  // Step 3: Resolve the OpenCode directory for default paths
-  const openCodeDir = await resolveOpenCodeDir(projectDir)
-  const defaultLogPath = path.join(openCodeDir.dir, "agent-monitor.log")
+  // Step 3: Default log path is always inside the project
+  const defaultLogPath = path.join(projectDir, ".opencode", "agent-monitor.log")
 
   // Step 4: Build the full config with defaults
   const config: AgentMonitorConfig = {
@@ -160,26 +188,14 @@ export async function resolveConfigAsync(
     ...mergedConfig,
   }
 
-  // Resolve relative log paths against the project directory
-  if (!path.isAbsolute(config.logPath)) {
+  // Resolve relative log paths.
+  // Tilde (~) is expanded to the home directory.
+  // Other relative paths resolve against the project directory.
+  if (config.logPath.startsWith("~")) {
+    const homeDir = process.env.HOME || process.env.USERPROFILE || ""
+    config.logPath = path.join(homeDir, config.logPath.slice(1))
+  } else if (!path.isAbsolute(config.logPath)) {
     config.logPath = path.resolve(projectDir, config.logPath)
-  }
-
-  // Security: Validate that logPath is within the project directory
-  // to prevent path traversal attacks via malicious config files.
-  // Uses fs.realpath to resolve symlinks before comparison.
-  let resolvedProjectDir = path.resolve(projectDir)
-  try {
-    resolvedProjectDir = await fsAsync.realpath(resolvedProjectDir)
-  } catch {
-    // If realpath fails (e.g., directory doesn't exist yet), fall back to path.resolve
-  }
-  if (
-    !config.logPath.startsWith(resolvedProjectDir + path.sep) &&
-    config.logPath !== resolvedProjectDir
-  ) {
-    // Reset to default path within project directory
-    config.logPath = defaultLogPath
   }
 
   // Validate maxLogSize with safe bounds
@@ -275,29 +291,8 @@ export function resolveConfig(
   userConfig: Partial<AgentMonitorConfig> = {},
   projectDir: string = process.cwd()
 ): AgentMonitorConfig {
-  // Sync version of resolveOpenCodeDir
-  let openCodeDir: string
-  const configOpencode = path.join(projectDir, ".config", "opencode")
-  const legacyOpencode = path.join(projectDir, ".opencode")
-  try {
-    fs.accessSync(configOpencode)
-    openCodeDir = configOpencode
-  } catch {
-    try {
-      fs.accessSync(legacyOpencode)
-      openCodeDir = legacyOpencode
-    } catch {
-      // Neither exists — log warning and fallback
-      process.stderr.write(
-        `[agent-monitor] Neither "${configOpencode}" nor "${legacyOpencode}" found. ` +
-          `Using "${configOpencode}" as default. ` +
-          `Create one of these directories so the plugin can store its config and logs.\n`
-      )
-      openCodeDir = configOpencode
-    }
-  }
-
-  const defaultLogPath = path.join(openCodeDir, "agent-monitor.log")
+  // Default log path is always inside the project
+  const defaultLogPath = path.join(projectDir, ".opencode", "agent-monitor.log")
 
   const config: AgentMonitorConfig = {
     ...DEFAULT_CONFIG,
@@ -305,26 +300,14 @@ export function resolveConfig(
     ...userConfig,
   }
 
-  // Resolve relative log paths against the project directory
-  if (!path.isAbsolute(config.logPath)) {
+  // Resolve relative log paths.
+  // Tilde (~) is expanded to the home directory.
+  // Other relative paths resolve against the project directory.
+  if (config.logPath.startsWith("~")) {
+    const homeDir = process.env.HOME || process.env.USERPROFILE || ""
+    config.logPath = path.join(homeDir, config.logPath.slice(1))
+  } else if (!path.isAbsolute(config.logPath)) {
     config.logPath = path.resolve(projectDir, config.logPath)
-  }
-
-  // Security: Validate that logPath is within the project directory
-  // to prevent path traversal attacks via malicious config files.
-  // Uses fs.realpathSync to resolve symlinks before comparison.
-  let resolvedProjectDir = path.resolve(projectDir)
-  try {
-    resolvedProjectDir = fs.realpathSync(resolvedProjectDir)
-  } catch {
-    // If realpathSync fails (e.g., directory doesn't exist yet), fall back to path.resolve
-  }
-  if (
-    !config.logPath.startsWith(resolvedProjectDir + path.sep) &&
-    config.logPath !== resolvedProjectDir
-  ) {
-    // Reset to default path within project directory
-    config.logPath = defaultLogPath
   }
 
   // Validate maxLogSize with safe bounds
