@@ -1,6 +1,6 @@
 {
   "name": "opencode-agent-monitor",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "Monitor, audit, and analyze agent/subagent routing and tool usage in OpenCode sessions",
   "type": "module",
   "main": "./dist/index.js",
