@@ -1,9 +1,11 @@
 import type { Plugin } from "@opencode-ai/plugin"
+import { createRequire } from "module"
 import { resolveConfigAsync } from "./config.js"
 import { StructuredLogger } from "./logger.js"
 import { detectDomains, detectAgentMismatch } from "./domain-detector.js"
 
-const PLUGIN_VERSION = "1.0.0"
+const require = createRequire(import.meta.url)
+const PLUGIN_VERSION: string = require("../package.json").version
 const PLUGIN_NAME = "agent-monitor"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
