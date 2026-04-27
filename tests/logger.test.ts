@@ -46,7 +46,8 @@ describe("redactSensitiveData", () => {
   })
 
   test("redacts bearer tokens", () => {
-    const input = "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test"
+    const input =
+      "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test"
     const result = redactSensitiveData(input)
     expect(result).not.toContain("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test")
     expect(result).toContain("[REDACTED]")
@@ -113,7 +114,9 @@ describe("redactObject", () => {
 })
 
 describe("StructuredLogger", () => {
-  function getConfig(overrides: Partial<AgentMonitorConfig> = {}): AgentMonitorConfig {
+  function getConfig(
+    overrides: Partial<AgentMonitorConfig> = {}
+  ): AgentMonitorConfig {
     return {
       enabled: true,
       logPath: TEST_LOG_PATH,
@@ -168,7 +171,9 @@ describe("StructuredLogger", () => {
   })
 
   test("redacts sensitive data by default", async () => {
-    const logger = new StructuredLogger(getConfig({ redactSensitiveData: true }))
+    const logger = new StructuredLogger(
+      getConfig({ redactSensitiveData: true })
+    )
     await logger.write({
       type: "test",
       api_key: "sk-1234567890abcdef1234567890abcdef",

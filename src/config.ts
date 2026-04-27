@@ -7,10 +7,7 @@ import type {
 } from "./types.js"
 import { DEFAULT_CONFIG, DEFAULT_DOMAIN_DEFINITIONS } from "./types.js"
 import type { AgentMonitorJsonConfig } from "./json-config.js"
-import {
-  discoverAgents,
-  generateAgentMappings,
-} from "./agent-discovery.js"
+import { discoverAgents, generateAgentMappings } from "./agent-discovery.js"
 
 /**
  * Load the JSON config file from .opencode/agent-monitor.json.
@@ -122,8 +119,10 @@ export async function resolveConfigAsync(
   // Security: Validate that logPath is within the project directory
   // to prevent path traversal attacks via malicious config files
   const resolvedProjectDir = path.resolve(projectDir)
-  if (!config.logPath.startsWith(resolvedProjectDir + path.sep) &&
-      config.logPath !== resolvedProjectDir) {
+  if (
+    !config.logPath.startsWith(resolvedProjectDir + path.sep) &&
+    config.logPath !== resolvedProjectDir
+  ) {
     // Reset to default path within project directory
     config.logPath = path.join(projectDir, ".opencode", "agent-monitor.log")
   }
@@ -232,8 +231,10 @@ export function resolveConfig(
   // Security: Validate that logPath is within the project directory
   // to prevent path traversal attacks via malicious config files
   const resolvedProjectDir = path.resolve(projectDir)
-  if (!config.logPath.startsWith(resolvedProjectDir + path.sep) &&
-      config.logPath !== resolvedProjectDir) {
+  if (
+    !config.logPath.startsWith(resolvedProjectDir + path.sep) &&
+    config.logPath !== resolvedProjectDir
+  ) {
     // Reset to default path within project directory
     config.logPath = path.join(projectDir, ".opencode", "agent-monitor.log")
   }
@@ -297,9 +298,7 @@ export function getAgentDomains(
   if (!config.agentMappings || config.agentMappings.length === 0) return null
 
   const normalized = agentName.toLowerCase()
-  const mapping = config.agentMappings.find(
-    (m) => m.agentName === normalized
-  )
+  const mapping = config.agentMappings.find((m) => m.agentName === normalized)
 
   return mapping ? mapping.domains : null
 }

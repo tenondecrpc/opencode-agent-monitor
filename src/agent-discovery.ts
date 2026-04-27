@@ -8,11 +8,7 @@ import type { AgentMonitorConfig, Domain, AgentDomainMapping } from "./types.js"
  * Built-in OpenCode agent names that are system agents and should be
  * excluded from auto-detection.
  */
-const SYSTEM_AGENTS = new Set([
-  "compaction",
-  "title",
-  "summary",
-])
+const SYSTEM_AGENTS = new Set(["compaction", "title", "summary"])
 
 /**
  * Built-in OpenCode agent names and their known domains.
@@ -98,9 +94,8 @@ async function discoverAgentsFromJson(
 
   // Check project-level opencode.json
   const projectConfigPath = path.join(projectDir, "opencode.json")
-  const projectConfig = await readJsonFile<Record<string, unknown>>(
-    projectConfigPath
-  )
+  const projectConfig =
+    await readJsonFile<Record<string, unknown>>(projectConfigPath)
 
   if (projectConfig?.agent && typeof projectConfig.agent === "object") {
     const agentSection = projectConfig.agent as Record<
@@ -131,9 +126,8 @@ async function discoverAgentsFromJson(
         "opencode",
         "opencode.json"
       )
-      const globalConfig = await readJsonFile<Record<string, unknown>>(
-        globalConfigPath
-      )
+      const globalConfig =
+        await readJsonFile<Record<string, unknown>>(globalConfigPath)
 
       if (globalConfig?.agent && typeof globalConfig.agent === "object") {
         const agentSection = globalConfig.agent as Record<

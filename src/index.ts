@@ -53,11 +53,7 @@ type UnknownRecord = Record<string, any>
  * }
  * ```
  */
-export const AgentMonitor: Plugin = async ({
-  project,
-  client,
-  directory,
-}) => {
+export const AgentMonitor: Plugin = async ({ project, client, directory }) => {
   // Resolve configuration with auto-discovery
   const config = await resolveConfigAsync({}, directory || process.cwd())
 
@@ -179,7 +175,10 @@ export const AgentMonitor: Plugin = async ({
           : typeof input.error === "object"
             ? {
                 name: (input.error as Error).name || "UnknownError",
-                message: String((input.error as Error).message || "").slice(0, 500),
+                message: String((input.error as Error).message || "").slice(
+                  0,
+                  500
+                ),
               }
             : String(input.error).slice(0, 500)
         : "unknown"
@@ -226,7 +225,7 @@ export const AgentMonitor: Plugin = async ({
     // ============================================================
     "tool.execute.before": async (
       input?: UnknownRecord,
-      output?: UnknownRecord,
+      output?: UnknownRecord
     ) => {
       if (!config.enabled || !config.enableToolTracking) return
 
@@ -246,7 +245,7 @@ export const AgentMonitor: Plugin = async ({
 
     "tool.execute.after": async (
       input?: UnknownRecord,
-      output?: UnknownRecord,
+      output?: UnknownRecord
     ) => {
       if (!config.enabled || !config.enableToolTracking) return
 
@@ -431,21 +430,14 @@ export const AgentMonitor: Plugin = async ({
 }
 
 // Re-export types and utilities for advanced usage
-export {
-  resolveConfig,
-  resolveConfigAsync,
-  getAgentDomains,
-} from "./config.js"
+export { resolveConfig, resolveConfigAsync, getAgentDomains } from "./config.js"
 export {
   StructuredLogger,
   redactSensitiveData,
   redactObject,
 } from "./logger.js"
 export { detectDomains, detectAgentMismatch } from "./domain-detector.js"
-export {
-  discoverAgents,
-  generateAgentMappings,
-} from "./agent-discovery.js"
+export { discoverAgents, generateAgentMappings } from "./agent-discovery.js"
 export type {
   Domain,
   DomainDetection,
@@ -454,11 +446,5 @@ export type {
   DomainDefinition,
   AgentDomainMapping,
 } from "./types.js"
-export type {
-  AgentMonitorJsonConfig,
-  DiscoveredAgent,
-} from "./json-config.js"
-export {
-  DEFAULT_CONFIG,
-  DEFAULT_DOMAIN_DEFINITIONS,
-} from "./types.js"
+export type { AgentMonitorJsonConfig, DiscoveredAgent } from "./json-config.js"
+export { DEFAULT_CONFIG, DEFAULT_DOMAIN_DEFINITIONS } from "./types.js"

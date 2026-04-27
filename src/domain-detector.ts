@@ -18,11 +18,11 @@ const MAX_REPETITION_COUNT = 5
  * These are rejected outright.
  */
 const REDOS_INDICATORS = [
-  /\([^()]*\+\)[*+]/,       // (x+)+ or (x+)*
-  /\([^()]*\*\)[*+]/,       // (x*)+ or (x*)*
+  /\([^()]*\+\)[*+]/, // (x+)+ or (x+)*
+  /\([^()]*\*\)[*+]/, // (x*)+ or (x*)*
   /\([^()]*\|[^()]*\)[*+]/, // (x|y)+ or (x|y)*
-  /\(\.\*\)[*+]/,           // (.*)+ or (.*)*
-  /\(\.\+\)[*+]/,           // (.+)+ or (.+)*
+  /\(\.\*\)[*+]/, // (.*)+ or (.*)*
+  /\(\.\+\)[*+]/, // (.+)+ or (.+)*
 ]
 
 /**
@@ -117,9 +117,7 @@ export function detectDomains(
   // Calculate confidence based on match density
   const wordCount = value.split(/\s+/).filter(Boolean).length
   const confidence =
-    wordCount > 0
-      ? Math.min(totalMatches / Math.max(wordCount * 0.1, 1), 1)
-      : 0
+    wordCount > 0 ? Math.min(totalMatches / Math.max(wordCount * 0.1, 1), 1) : 0
 
   return {
     domains: detections.map((d) => d.domain),

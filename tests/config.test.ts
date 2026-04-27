@@ -90,9 +90,7 @@ describe("resolveConfig", () => {
   test("uses only custom domains when mergeDomainDefinitions is false", () => {
     const config = resolveConfig({
       mergeDomainDefinitions: false,
-      domains: [
-        { name: "custom-domain", patterns: ["custom-pattern"] },
-      ],
+      domains: [{ name: "custom-domain", patterns: ["custom-pattern"] }],
     })
     expect(config.domains?.length).toBe(1)
     expect(config.domains?.[0]?.name).toBe("custom-domain")
@@ -101,9 +99,7 @@ describe("resolveConfig", () => {
   test("merges custom domains with defaults when mergeDomainDefinitions is true", () => {
     const config = resolveConfig({
       mergeDomainDefinitions: true,
-      domains: [
-        { name: "data-science", patterns: ["pandas", "numpy"] },
-      ],
+      domains: [{ name: "data-science", patterns: ["pandas", "numpy"] }],
     })
     expect(config.domains?.length).toBeGreaterThan(1)
     expect(config.domains?.some((d) => d.name === "data-science")).toBe(true)
@@ -113,9 +109,7 @@ describe("resolveConfig", () => {
   test("custom domain overrides default with same name", () => {
     const config = resolveConfig({
       mergeDomainDefinitions: true,
-      domains: [
-        { name: "frontend", patterns: ["^only-this$"] },
-      ],
+      domains: [{ name: "frontend", patterns: ["^only-this$"] }],
     })
     const frontendDef = config.domains?.find((d) => d.name === "frontend")
     expect(frontendDef?.patterns).toEqual(["^only-this$"])
@@ -142,9 +136,7 @@ describe("getAgentDomains", () => {
 
   test("returns null when agent not found in mappings", () => {
     const config = resolveConfig({
-      agentMappings: [
-        { agentName: "frontend", domains: ["frontend"] },
-      ],
+      agentMappings: [{ agentName: "frontend", domains: ["frontend"] }],
     })
     const result = getAgentDomains("unknown-agent", config)
     expect(result).toBeNull()
@@ -162,9 +154,7 @@ describe("getAgentDomains", () => {
 
   test("agent lookup is case-insensitive", () => {
     const config = resolveConfig({
-      agentMappings: [
-        { agentName: "My-UI-Agent", domains: ["frontend"] },
-      ],
+      agentMappings: [{ agentName: "My-UI-Agent", domains: ["frontend"] }],
     })
     const result = getAgentDomains("my-ui-agent", config)
     expect(result).toEqual(["frontend"])
@@ -172,9 +162,7 @@ describe("getAgentDomains", () => {
 
   test("agent lookup works with uppercase input", () => {
     const config = resolveConfig({
-      agentMappings: [
-        { agentName: "frontend", domains: ["frontend"] },
-      ],
+      agentMappings: [{ agentName: "frontend", domains: ["frontend"] }],
     })
     const result = getAgentDomains("FRONTEND", config)
     expect(result).toEqual(["frontend"])

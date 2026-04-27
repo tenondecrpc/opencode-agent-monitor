@@ -2,13 +2,18 @@ import { describe, expect, test, beforeEach, afterEach } from "vitest"
 import fs from "node:fs/promises"
 import path from "node:path"
 import { resolveConfigAsync, resolveConfig } from "../src/config.js"
-import { discoverAgents, generateAgentMappings } from "../src/agent-discovery.js"
+import {
+  discoverAgents,
+  generateAgentMappings,
+} from "../src/agent-discovery.js"
 
 const TEST_DIR = path.join(process.cwd(), ".test-agent-discovery")
 
 beforeEach(async () => {
   await fs.mkdir(TEST_DIR, { recursive: true })
-  await fs.mkdir(path.join(TEST_DIR, ".opencode", "agents"), { recursive: true })
+  await fs.mkdir(path.join(TEST_DIR, ".opencode", "agents"), {
+    recursive: true,
+  })
 })
 
 afterEach(async () => {
@@ -184,7 +189,8 @@ describe("generateAgentMappings", () => {
       },
       {
         name: "api-builder",
-        description: "Creates REST APIs with database routes and webhook handlers",
+        description:
+          "Creates REST APIs with database routes and webhook handlers",
         prompt: "You build backend services.",
         mode: "subagent",
         source: "json" as const,
@@ -275,13 +281,9 @@ describe("resolveConfigAsync", () => {
       maxLogSize: 5_242_880,
       enableDomainDetection: true,
       autoDetectAgents: false,
-      domains: [
-        { name: "custom-domain", patterns: ["custom-pattern"] },
-      ],
+      domains: [{ name: "custom-domain", patterns: ["custom-pattern"] }],
       mergeDomains: false,
-      agentMappings: [
-        { agentName: "my-agent", domains: ["custom-domain"] },
-      ],
+      agentMappings: [{ agentName: "my-agent", domains: ["custom-domain"] }],
     }
 
     await fs.mkdir(path.join(TEST_DIR, ".opencode"), { recursive: true })
@@ -341,9 +343,7 @@ describe("resolveConfigAsync", () => {
 
     const jsonConfig = {
       autoDetectAgents: true,
-      agentMappings: [
-        { agentName: "my-agent", domains: ["custom-domain"] },
-      ],
+      agentMappings: [{ agentName: "my-agent", domains: ["custom-domain"] }],
     }
 
     await fs.mkdir(path.join(TEST_DIR, ".opencode"), { recursive: true })

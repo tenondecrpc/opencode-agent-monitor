@@ -157,7 +157,10 @@ describe("detectDomains", () => {
 
   test("deduplicates matched keywords", () => {
     const config = testConfig()
-    const result = detectDomains("react react react component component", config)
+    const result = detectDomains(
+      "react react react component component",
+      config
+    )
     const uniqueKeywords = new Set(result.matchedKeywords)
     expect(result.matchedKeywords.length).toBe(uniqueKeywords.size)
   })
@@ -267,9 +270,7 @@ describe("detectAgentMismatch", () => {
 
   test("agent mappings are case-insensitive", () => {
     const config = testConfig({
-      agentMappings: [
-        { agentName: "My-UI-Agent", domains: ["frontend"] },
-      ],
+      agentMappings: [{ agentName: "My-UI-Agent", domains: ["frontend"] }],
     })
 
     const result = detectAgentMismatch(
@@ -319,9 +320,7 @@ describe("detectAgentMismatch", () => {
 
   test("partial domain coverage produces mismatch", () => {
     const config = testConfig({
-      agentMappings: [
-        { agentName: "frontend-only", domains: ["frontend"] },
-      ],
+      agentMappings: [{ agentName: "frontend-only", domains: ["frontend"] }],
     })
 
     const result = detectAgentMismatch(
