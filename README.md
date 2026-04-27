@@ -155,22 +155,22 @@ Use `jq` or any JSON-line parser to analyze logs. All examples below show the **
 
 ```bash
 # View the 10 most recent routing mismatches
-jq 'select(.type == "routing.mismatch")' .opencode/agent-monitor.log | tac | head -n 40
+jq 'select(.type == "routing.mismatch")' .opencode/agent-monitor.log | tail -r | head -n 40
 
 # Count tool usage by tool name
 jq -r 'select(.type | startswith("tool.")) | .tool' .opencode/agent-monitor.log | sort | uniq -c | sort -rn | head -10
 
 # View the 10 most recent permission requests
-jq 'select(.type | startswith("permission."))' .opencode/agent-monitor.log | tac | head -n 40
+jq 'select(.type | startswith("permission."))' .opencode/agent-monitor.log | tail -r | head -n 40
 
 # View the 10 most recent entries for a specific session
-jq 'select(.sessionID == "your-session-id")' .opencode/agent-monitor.log | tac | head -n 40
+jq 'select(.sessionID == "your-session-id")' .opencode/agent-monitor.log | tail -r | head -n 40
 
 # View the 10 most recent log entries of any type
-tac .opencode/agent-monitor.log | head -10 | jq '.'
+tail -r .opencode/agent-monitor.log | head -10 | jq '.'
 ```
 
-> **Tip:** `tac` reverses the file (newest lines first) and `head -10` limits output. Since each JSON object spans one line in the log file, `tac | head -10` gives you the 10 most recent entries. For filtered queries, pipe through `tac | head -n 40` (40 lines ≈ 10 JSON objects) to avoid loading the entire file.
+> **Tip:** `tail -r` reverses the file (newest lines first) and `head -10` limits output. Since each JSON object spans one line in the log file, `tail -r | head -10` gives you the 10 most recent entries. For filtered queries, pipe through `tail -r | head -n 40` (40 lines ≈ 10 JSON objects) to avoid loading the entire file.
 
 ## Configuration
 
@@ -518,7 +518,7 @@ opencode-agent-monitor/
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) >= 18.0.0
+- [Node.js](https://nodejs.org/) >= 22.0.0
 - [npm](https://www.npmjs.com/) (comes with Node.js)
 - [OpenCode](https://opencode.ai) (for testing)
 
