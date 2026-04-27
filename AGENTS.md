@@ -122,6 +122,18 @@ Later sources override earlier ones.
 - Falls back to `.opencode/` (legacy location).
 - If neither exists, logs a warning to stderr and uses `.config/opencode/` as default.
 
+### 8. OpenCode Runtime Logs (Reference)
+
+> **Note for agents:** When debugging plugin behavior or checking for errors, OpenCode's own runtime logs are stored per-session in the following locations. Go directly to these paths instead of running deep file searches.
+
+| Platform | Log Directory |
+|---|---|
+| **macOS** | `~/.local/share/opencode/log/` |
+| **Linux** | `~/.local/share/opencode/log/` |
+| **Windows** | `%LOCALAPPDATA%\opencode\log\` |
+
+Each session generates a timestamped log file (e.g., `2026-04-27T151423.log`). The most recent file is the current session. Search for `ERROR` or `service=plugin` to find plugin-related issues.
+
 ---
 
 ## Code Conventions
