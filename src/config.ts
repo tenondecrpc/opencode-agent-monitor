@@ -88,7 +88,7 @@ function jsonToInternalConfig(
   // Convert display options
   if (json.display) {
     config.display = {
-      toasts: json.display.toasts ?? false,
+      toasts: json.display.toasts ?? true,
       structuredLogging: json.display.structuredLogging ?? true,
     }
   }

@@ -447,7 +447,7 @@ describe("resolveConfigAsync", () => {
     )
 
     const config = await resolveConfigAsync({}, TEST_DIR)
-    expect(config.display.toasts).toBe(false)
+    expect(config.display.toasts).toBe(true)
     expect(config.display.structuredLogging).toBe(true)
   })
 })

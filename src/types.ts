@@ -492,7 +492,7 @@ export const DEFAULT_CONFIG: Omit<AgentMonitorConfig, "logPath"> = {
   mergeDomainDefinitions: true,
   emitRoutingWarnings: true,
   display: {
-    toasts: false,
+    toasts: true,
     structuredLogging: true,
   },
 }

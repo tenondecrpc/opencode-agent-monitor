@@ -154,7 +154,7 @@ That's it. The plugin will:
 ```json
 {
   "enabled": true,
-  "logPath": ".opencode/agent-monitor.log",
+  "logPath": ".config/opencode/agent-monitor.log",
   "maxLogSize": 10485760,
   "maxRotatedFiles": 5,
   "enableDomainDetection": true,
@@ -180,7 +180,7 @@ That's it. The plugin will:
   ],
 
   "display": {
-    "toasts": false,
+    "toasts": true,
     "structuredLogging": true
   }
 }
@@ -194,7 +194,7 @@ The plugin has three levels of visibility, from always-on to optional:
 |---|---|---|---|
 | **File logging** | All events written to `.config/opencode/agent-monitor.log` (or `.opencode/agent-monitor.log` as fallback) | ✅ Always on | No (mandatory) |
 | **Structured logging** | Events sent to OpenCode's internal log viewer via `client.app.log()` | ✅ On | Yes |
-| **Toast notifications** | Brief pop-up messages in the TUI for important events | ❌ Off | Yes |
+| **Toast notifications** | Brief pop-up messages in the TUI for important events | ✅ On | Yes |
 
 #### Toast Notifications
 

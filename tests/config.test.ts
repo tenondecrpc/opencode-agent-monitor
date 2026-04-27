@@ -172,7 +172,7 @@ describe("getAgentDomains", () => {
 describe("display config", () => {
   test("uses default display settings", () => {
     const config = resolveConfig({})
-    expect(config.display.toasts).toBe(false)
+    expect(config.display.toasts).toBe(true)
     expect(config.display.structuredLogging).toBe(true)
   })
 
