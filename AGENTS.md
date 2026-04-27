@@ -15,7 +15,7 @@
 - **Node.js 22 is the only supported version** for all builds, tests, and development.
 - Always use `nvm use 22` or ensure `node --version` returns `v22.x` before running any command.
 - CI, local builds, and test runs **must** execute under Node.js 22.
-- Do not use Node.js 18, 20, or any other version — even if `package.json` says `>=18.0.0` (that field is for npm compatibility, not development).
+- Do not use Node.js 18, 20, or any other version — `package.json` enforces `"engines": { "node": ">=22.0.0" }`.
 
 ### Required Commands
 
@@ -139,6 +139,7 @@ Later sources override earlier ones.
 
 - **Framework:** Vitest
 - **Coverage:** `npm run test:coverage`
+- **Node.js 22 is the only allowed version** for running tests. Never use a Node.js version matrix or test against Node.js 18, 20, or any version below 22.
 - All new features must include tests.
 - Tests must pass before committing.
 
