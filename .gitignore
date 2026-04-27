@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Lock files (bun)
+bun.lock
+
+# Build output
+dist/
+
+# Logs
+*.log
+.opencode/agent-monitor.log*
+.test-logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
