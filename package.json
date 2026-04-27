@@ -44,12 +44,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tenonde/opencode-agent-monitor.git"
+    "url": "https://github.com/tenondecrpc/opencode-agent-monitor.git"
   },
   "bugs": {
-    "url": "https://github.com/tenonde/opencode-agent-monitor/issues"
+    "url": "https://github.com/tenondecrpc/opencode-agent-monitor/issues"
   },
-  "homepage": "https://github.com/tenonde/opencode-agent-monitor#readme",
+  "homepage": "https://github.com/tenondecrpc/opencode-agent-monitor#readme",
   "devDependencies": {
     "@opencode-ai/plugin": "^1.0.0",
     "@types/node": "^22.0.0",
