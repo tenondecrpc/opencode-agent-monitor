@@ -162,3 +162,25 @@ Each session generates a timestamped log file (e.g., `2026-04-27T151423.log`). T
 - Branch naming: `fix/...`, `feat/...`, `chore/...`, `docs/...`
 - Commit messages: conventional commits format
 - Always run `npm run build && npm test && npm run lint` before pushing.
+
+### Releases (Automatic)
+
+Releases are fully automated via **semantic-release**. **Never manually bump the version in `package.json`.**
+
+The version is determined by your commit messages:
+
+| Commit type | Version bump | Example |
+|---|---|---|
+| `fix:` | Patch (1.0.0 → 1.0.1) | `fix: resolve config path traversal` |
+| `feat:` | Minor (1.0.0 → 1.1.0) | `feat: add permission tracking` |
+| `BREAKING CHANGE:` in body | Major (1.0.0 → 2.0.0) | `feat: new API\n\nBREAKING CHANGE: removed legacy config` |
+| `docs:`, `chore:`, `refactor:`, `style:` | Patch | `docs: add runtime log locations` |
+
+**To release:** just merge a PR to `main`. The CI workflow handles everything:
+1. Runs quality gates (lint, test, typecheck, audit)
+2. Analyzes commits to determine version bump
+3. Updates `package.json` version
+4. Generates `CHANGELOG.md`
+5. Publishes to npm
+6. Creates git tag
+7. Creates GitHub Release
