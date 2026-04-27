@@ -303,13 +303,13 @@ For full programmatic control, create a plugin wrapper in TypeScript:
 ```typescript
 // .config/opencode/plugins/agent-monitor.ts (preferred)
 // or .opencode/plugins/agent-monitor.ts (legacy)
+import { AgentMonitor } from "opencode-agent-monitor"
 import {
-  AgentMonitor,
   resolveConfigAsync,
   StructuredLogger,
   detectDomains,
   detectAgentMismatch,
-} from "opencode-agent-monitor"
+} from "opencode-agent-monitor/exports"
 
 // Option 1: Use the plugin as-is (auto-detects agents, uses defaults)
 export const AgentMonitorDefault = async (ctx) => {

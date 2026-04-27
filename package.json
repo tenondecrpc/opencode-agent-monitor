@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./exports": {
+      "types": "./dist/exports.d.ts",
+      "import": "./dist/exports.js"
     }
   },
   "files": [
@@ -69,7 +73,7 @@
     "uuid": "^14.0.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
