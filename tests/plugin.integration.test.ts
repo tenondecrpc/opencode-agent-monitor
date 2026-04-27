@@ -319,9 +319,7 @@ describe("message.updated handler", () => {
       path.join(configDir, "agent-monitor.json"),
       JSON.stringify({
         autoDetectAgents: false,
-        agentMappings: [
-          { agentName: "backend-agent", domains: ["backend"] },
-        ],
+        agentMappings: [{ agentName: "backend-agent", domains: ["backend"] }],
       })
     )
 
