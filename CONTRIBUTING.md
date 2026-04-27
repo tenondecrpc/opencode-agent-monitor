@@ -112,7 +112,6 @@ test(config): add validation tests for edge cases
 - [ ] Type checking passes
 - [ ] Build succeeds
 - [ ] PR template is filled out
-- [ ] CHANGELOG.md is updated (if applicable)
 
 ## Adding Domain Patterns
 
@@ -133,14 +132,14 @@ To add new domain detection patterns:
 
 ## Reporting Issues
 
-- Use [GitHub Issues](https://github.com/tenonde/opencode-agent-monitor/issues)
+- Use [GitHub Issues](https://github.com/tenondecrpc/opencode-agent-monitor/issues)
 - Fill out the appropriate template
 - Include reproduction steps for bugs
 - Redact any sensitive information
 
 ## Questions?
 
-- Open a [GitHub Discussion](https://github.com/tenonde/opencode-agent-monitor/discussions)
+- Open a [GitHub Discussion](https://github.com/tenondecrpc/opencode-agent-monitor/discussions)
 - Check existing issues and documentation
 
 ## License

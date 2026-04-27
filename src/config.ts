@@ -10,6 +10,9 @@ import { DEFAULT_CONFIG, DEFAULT_DOMAIN_DEFINITIONS } from "./types.js"
 import type { AgentMonitorJsonConfig } from "./json-config.js"
 import { discoverAgents, generateAgentMappings } from "./agent-discovery.js"
 import { resolveOpenCodeDir } from "./utils.js"
+import { isSafeRegexPattern } from "./domain-detector.js"
+// Re-exported from separate module to break circular dependency
+export { getAgentDomains } from "./agent-mapping-utils.js"
 
 /**
  * Load the JSON config file from .config/opencode/agent-monitor.json
@@ -97,6 +100,28 @@ function jsonToInternalConfig(
 }
 
 /**
+ * Pre-compile regex patterns for all domain definitions.
+ * This avoids recompiling the same patterns on every tool execution,
+ * which can be a significant performance bottleneck.
+ *
+ * Unsafe or invalid patterns are silently skipped.
+ */
+function compileDomainPatterns(domains: DomainDefinition[]): void {
+  for (const def of domains) {
+    def.compiledPatterns = def.patterns
+      .filter(isSafeRegexPattern)
+      .map((pattern) => {
+        try {
+          return new RegExp(pattern, "i")
+        } catch {
+          return null
+        }
+      })
+      .filter((regex): regex is RegExp => regex !== null)
+  }
+}
+
+/**
  * Resolve and validate the plugin configuration.
  *
  * Configuration is loaded from multiple sources in this order:
@@ -141,8 +166,14 @@ export async function resolveConfigAsync(
   }
 
   // Security: Validate that logPath is within the project directory
-  // to prevent path traversal attacks via malicious config files
-  const resolvedProjectDir = path.resolve(projectDir)
+  // to prevent path traversal attacks via malicious config files.
+  // Uses fs.realpath to resolve symlinks before comparison.
+  let resolvedProjectDir = path.resolve(projectDir)
+  try {
+    resolvedProjectDir = await fsAsync.realpath(resolvedProjectDir)
+  } catch {
+    // If realpath fails (e.g., directory doesn't exist yet), fall back to path.resolve
+  }
   if (
     !config.logPath.startsWith(resolvedProjectDir + path.sep) &&
     config.logPath !== resolvedProjectDir
@@ -187,6 +218,9 @@ export async function resolveConfigAsync(
   } else {
     config.domains = [...DEFAULT_DOMAIN_DEFINITIONS]
   }
+
+  // Pre-compile regex patterns for performance (avoids recompilation on every tool call)
+  compileDomainPatterns(config.domains)
 
   // Step 4: Auto-detect agents if enabled
   const autoDetect = jsonConfig?.autoDetectAgents ?? true
@@ -277,8 +311,14 @@ export function resolveConfig(
   }
 
   // Security: Validate that logPath is within the project directory
-  // to prevent path traversal attacks via malicious config files
-  const resolvedProjectDir = path.resolve(projectDir)
+  // to prevent path traversal attacks via malicious config files.
+  // Uses fs.realpathSync to resolve symlinks before comparison.
+  let resolvedProjectDir = path.resolve(projectDir)
+  try {
+    resolvedProjectDir = fs.realpathSync(resolvedProjectDir)
+  } catch {
+    // If realpathSync fails (e.g., directory doesn't exist yet), fall back to path.resolve
+  }
   if (
     !config.logPath.startsWith(resolvedProjectDir + path.sep) &&
     config.logPath !== resolvedProjectDir
@@ -324,6 +364,9 @@ export function resolveConfig(
     config.domains = [...DEFAULT_DOMAIN_DEFINITIONS]
   }
 
+  // Pre-compile regex patterns for performance (avoids recompilation on every tool call)
+  compileDomainPatterns(config.domains)
+
   // Normalize agent mappings: ensure agentName is lowercase for matching
   if (config.agentMappings) {
     config.agentMappings = config.agentMappings.map((mapping) => ({
@@ -333,20 +376,4 @@ export function resolveConfig(
   }
 
   return config
-}
-
-/**
- * Get the domains that an agent is responsible for based on configured mappings.
- * Returns null if no mapping exists for the agent.
- */
-export function getAgentDomains(
-  agentName: string,
-  config: AgentMonitorConfig
-): string[] | null {
-  if (!config.agentMappings || config.agentMappings.length === 0) return null
-
-  const normalized = agentName.toLowerCase()
-  const mapping = config.agentMappings.find((m) => m.agentName === normalized)
-
-  return mapping ? mapping.domains : null
 }

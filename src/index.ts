@@ -196,11 +196,16 @@ export const AgentMonitor: Plugin = async ({ project, client, directory }) => {
       // Structured logging (if enabled)
       if (config.display.structuredLogging) {
         try {
+          // Use sanitized error to prevent leaking sensitive data
+          const safeErrorMessage =
+            typeof sanitizedError === "string"
+              ? sanitizedError
+              : (sanitizedError as { message?: string }).message || "unknown"
           await client.app.log({
             body: {
               service: PLUGIN_NAME,
               level: "error",
-              message: `Session error: ${input?.error || "unknown"}`,
+              message: `Session error: ${safeErrorMessage}`,
               extra: { sessionID: input?.sessionID },
             },
           })
@@ -212,9 +217,14 @@ export const AgentMonitor: Plugin = async ({ project, client, directory }) => {
       // Toast notification (if enabled)
       if (config.display.toasts) {
         try {
+          // Use sanitized error to prevent leaking sensitive data
+          const safeToastMessage =
+            typeof sanitizedError === "string"
+              ? sanitizedError
+              : (sanitizedError as { message?: string }).message || "unknown"
           await client.tui.showToast({
             body: {
-              message: `❌ Session error: ${String(input?.error || "unknown").slice(0, 60)}`,
+              message: `Session error: ${String(safeToastMessage).slice(0, 60)}`,
               variant: "error",
             },
           })
@@ -434,7 +444,8 @@ export const AgentMonitor: Plugin = async ({ project, client, directory }) => {
 }
 
 // Re-export types and utilities for advanced usage
-export { resolveConfig, resolveConfigAsync, getAgentDomains } from "./config.js"
+export { resolveConfig, resolveConfigAsync } from "./config.js"
+export { getAgentDomains } from "./agent-mapping-utils.js"
 export {
   StructuredLogger,
   redactSensitiveData,
