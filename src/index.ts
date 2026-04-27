@@ -462,5 +462,9 @@ export type {
   AgentDomainMapping,
 } from "./types.js"
 export type { AgentMonitorJsonConfig, DiscoveredAgent } from "./json-config.js"
-export { DEFAULT_CONFIG, DEFAULT_DOMAIN_DEFINITIONS } from "./types.js"
+// Note: DEFAULT_CONFIG and DEFAULT_DOMAIN_DEFINITIONS are intentionally not
+// re-exported here. OpenCode's plugin loader iterates over all module exports
+// and expects each one to be a function. Non-function exports (objects, arrays)
+// cause a "Plugin export is not a function" error. Import them directly from
+// "./types.js" if needed.
 export default AgentMonitor
