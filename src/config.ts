@@ -1,4 +1,5 @@
-import fs from "node:fs/promises"
+import fs from "node:fs"
+import fsAsync from "node:fs/promises"
 import path from "node:path"
 import type {
   AgentMonitorConfig,
@@ -8,21 +9,39 @@ import type {
 import { DEFAULT_CONFIG, DEFAULT_DOMAIN_DEFINITIONS } from "./types.js"
 import type { AgentMonitorJsonConfig } from "./json-config.js"
 import { discoverAgents, generateAgentMappings } from "./agent-discovery.js"
+import { resolveOpenCodeDir } from "./utils.js"
 
 /**
- * Load the JSON config file from .opencode/agent-monitor.json.
+ * Load the JSON config file from .config/opencode/agent-monitor.json
+ * (preferred) or .opencode/agent-monitor.json (legacy fallback).
  * Returns null if the file doesn't exist or is invalid.
  */
 async function loadJsonConfig(
   projectDir: string
 ): Promise<AgentMonitorJsonConfig | null> {
-  const configPath = path.join(projectDir, ".opencode", "agent-monitor.json")
+  const resolved = await resolveOpenCodeDir(projectDir)
+
+  // Try preferred location first
+  const preferredPath = path.join(resolved.dir, "agent-monitor.json")
   try {
-    const content = await fs.readFile(configPath, "utf-8")
+    const content = await fsAsync.readFile(preferredPath, "utf-8")
     return JSON.parse(content) as AgentMonitorJsonConfig
   } catch {
-    return null
+    // File not found in preferred location, try legacy
   }
+
+  // Try legacy .opencode/ location
+  const legacyPath = path.join(projectDir, ".opencode", "agent-monitor.json")
+  if (legacyPath !== preferredPath) {
+    try {
+      const content = await fsAsync.readFile(legacyPath, "utf-8")
+      return JSON.parse(content) as AgentMonitorJsonConfig
+    } catch {
+      return null
+    }
+  }
+
+  return null
 }
 
 /**
@@ -81,7 +100,8 @@ function jsonToInternalConfig(
  * Resolve and validate the plugin configuration.
  *
  * Configuration is loaded from multiple sources in this order:
- * 1. .opencode/agent-monitor.json (file-based config)
+ * 1. .config/opencode/agent-monitor.json (preferred) or
+ *    .opencode/agent-monitor.json (legacy fallback)
  * 2. userConfig parameter (programmatic config)
  * 3. Auto-discovery from OpenCode's agent configuration
  * 4. Built-in defaults
@@ -104,10 +124,14 @@ export async function resolveConfigAsync(
     ...userConfig,
   }
 
-  // Step 3: Build the full config with defaults
+  // Step 3: Resolve the OpenCode directory for default paths
+  const openCodeDir = await resolveOpenCodeDir(projectDir)
+  const defaultLogPath = path.join(openCodeDir.dir, "agent-monitor.log")
+
+  // Step 4: Build the full config with defaults
   const config: AgentMonitorConfig = {
     ...DEFAULT_CONFIG,
-    logPath: path.join(projectDir, ".opencode", "agent-monitor.log"),
+    logPath: defaultLogPath,
     ...mergedConfig,
   }
 
@@ -124,7 +148,7 @@ export async function resolveConfigAsync(
     config.logPath !== resolvedProjectDir
   ) {
     // Reset to default path within project directory
-    config.logPath = path.join(projectDir, ".opencode", "agent-monitor.log")
+    config.logPath = defaultLogPath
   }
 
   // Validate maxLogSize with safe bounds
@@ -217,9 +241,33 @@ export function resolveConfig(
   userConfig: Partial<AgentMonitorConfig> = {},
   projectDir: string = process.cwd()
 ): AgentMonitorConfig {
+  // Sync version of resolveOpenCodeDir
+  let openCodeDir: string
+  const configOpencode = path.join(projectDir, ".config", "opencode")
+  const legacyOpencode = path.join(projectDir, ".opencode")
+  try {
+    fs.accessSync(configOpencode)
+    openCodeDir = configOpencode
+  } catch {
+    try {
+      fs.accessSync(legacyOpencode)
+      openCodeDir = legacyOpencode
+    } catch {
+      // Neither exists — log warning and fallback
+      process.stderr.write(
+        `[agent-monitor] Neither "${configOpencode}" nor "${legacyOpencode}" found. ` +
+          `Using "${configOpencode}" as default. ` +
+          `Create one of these directories so the plugin can store its config and logs.\n`
+      )
+      openCodeDir = configOpencode
+    }
+  }
+
+  const defaultLogPath = path.join(openCodeDir, "agent-monitor.log")
+
   const config: AgentMonitorConfig = {
     ...DEFAULT_CONFIG,
-    logPath: path.join(projectDir, ".opencode", "agent-monitor.log"),
+    logPath: defaultLogPath,
     ...userConfig,
   }
 
@@ -236,7 +284,7 @@ export function resolveConfig(
     config.logPath !== resolvedProjectDir
   ) {
     // Reset to default path within project directory
-    config.logPath = path.join(projectDir, ".opencode", "agent-monitor.log")
+    config.logPath = defaultLogPath
   }
 
   // Validate maxLogSize with safe bounds

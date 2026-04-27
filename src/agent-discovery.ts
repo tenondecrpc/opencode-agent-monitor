@@ -156,14 +156,41 @@ async function discoverAgentsFromJson(
 }
 
 /**
- * Discover agents from markdown files in .opencode/agents/ and ~/.config/opencode/agents/.
+ * Discover agents from markdown files in .config/opencode/agents/ (preferred)
+ * and .opencode/agents/ (legacy fallback), plus ~/.config/opencode/agents/.
  */
 async function discoverAgentsFromMarkdown(
   projectDir: string,
   options: DiscoverAgentsOptions
 ): Promise<DiscoveredAgent[]> {
   const agents: DiscoveredAgent[] = []
-  const agentDirs = [path.join(projectDir, ".opencode", "agents")]
+  const agentDirs: string[] = []
+
+  // Project-level: check .config/opencode/agents/ first, then .opencode/agents/
+  const configAgents = path.join(projectDir, ".config", "opencode", "agents")
+  const legacyAgents = path.join(projectDir, ".opencode", "agents")
+
+  let foundProjectAgents = false
+  try {
+    await fs.access(configAgents)
+    agentDirs.push(configAgents)
+    foundProjectAgents = true
+  } catch {
+    // .config/opencode/agents/ does not exist
+  }
+
+  // Also check legacy location if preferred wasn't found (to support both)
+  try {
+    await fs.access(legacyAgents)
+    if (!foundProjectAgents) {
+      agentDirs.push(legacyAgents)
+    } else if (legacyAgents !== configAgents) {
+      // Both exist — include both so agents from either location are discovered
+      agentDirs.push(legacyAgents)
+    }
+  } catch {
+    // .opencode/agents/ does not exist
+  }
 
   if (options.includeGlobalConfig) {
     agentDirs.push(

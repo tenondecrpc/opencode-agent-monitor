@@ -17,8 +17,10 @@ type UnknownRecord = Record<string, any>
  * warnings, and structured JSON-line logging.
  *
  * Configuration is loaded from:
- * 1. .opencode/agent-monitor.json (simple JSON config)
- * 2. Auto-discovery from opencode.json and .opencode/agents/*.md
+ * 1. .config/opencode/agent-monitor.json (preferred) or
+ *    .opencode/agent-monitor.json (legacy fallback)
+ * 2. Auto-discovery from opencode.json and .config/opencode/agents/*.md
+ *    (or .opencode/agents/*.md as fallback)
  * 3. Built-in defaults
  *
  * @example
@@ -31,7 +33,8 @@ type UnknownRecord = Record<string, any>
  *
  * @example
  * ```json
- * // .opencode/agent-monitor.json (optional)
+ * // .config/opencode/agent-monitor.json (preferred)
+ * // or .opencode/agent-monitor.json (legacy)
  * {
  *   "autoDetectAgents": true,
  *   "domains": [
@@ -45,7 +48,8 @@ type UnknownRecord = Record<string, any>
  *
  * @example
  * ```ts
- * // .opencode/plugins/agent-monitor.ts
+ * // .config/opencode/plugins/agent-monitor.ts (preferred)
+ * // or .opencode/plugins/agent-monitor.ts (legacy)
  * export const AgentMonitor = async (ctx) => {
  *   return {
  *     // ... hooks

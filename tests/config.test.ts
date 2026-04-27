@@ -25,7 +25,7 @@ describe("resolveConfig", () => {
       "/tmp/project"
     )
     expect(config.logPath).toBe(
-      path.join("/tmp/project", ".opencode", "agent-monitor.log")
+      path.join("/tmp/project", ".config", "opencode", "agent-monitor.log")
     )
   })
 
@@ -41,7 +41,7 @@ describe("resolveConfig", () => {
   test("uses default log path when not specified", () => {
     const config = resolveConfig({}, "/tmp/project")
     expect(config.logPath).toBe(
-      path.join("/tmp/project", ".opencode", "agent-monitor.log")
+      path.join("/tmp/project", ".config", "opencode", "agent-monitor.log")
     )
   })
 
@@ -77,7 +77,7 @@ describe("resolveConfig", () => {
   test("uses process.cwd() as default directory", () => {
     const config = resolveConfig({})
     expect(config.logPath).toBe(
-      path.join(process.cwd(), ".opencode", "agent-monitor.log")
+      path.join(process.cwd(), ".config", "opencode", "agent-monitor.log")
     )
   })
 

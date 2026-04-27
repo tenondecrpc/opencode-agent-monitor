@@ -54,7 +54,7 @@ export interface AgentMonitorConfig {
   /**
    * Path to the log file. Supports absolute and relative paths.
    * Relative paths are resolved from the project root.
-   * @default ".opencode/agent-monitor.log"
+   * @default ".config/opencode/agent-monitor.log" (or ".opencode/agent-monitor.log" as fallback)
    */
   logPath: string
 

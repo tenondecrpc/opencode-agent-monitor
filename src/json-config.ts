@@ -1,7 +1,8 @@
 import type { Domain } from "./types.js"
 
 /**
- * Simple JSON config file format for .opencode/agent-monitor.json
+ * Simple JSON config file format for agent-monitor.json.
+ * Place in .config/opencode/ (preferred) or .opencode/ (legacy).
  * This is the user-friendly way to configure the plugin without writing TypeScript.
  */
 export interface AgentMonitorJsonConfig {
@@ -11,10 +12,10 @@ export interface AgentMonitorJsonConfig {
    */
   enabled?: boolean
 
-  /**
-   * Path to the log file (relative to project root or absolute).
-   * @default ".opencode/agent-monitor.log"
-   */
+    /**
+     * Path to the log file (relative to project root or absolute).
+     * @default ".config/opencode/agent-monitor.log" (or ".opencode/agent-monitor.log" as fallback)
+     */
   logPath?: string
 
   /**
@@ -129,7 +130,7 @@ export interface AgentMonitorJsonConfig {
    * Automatically detect agents from opencode.json and agent markdown files.
    * When enabled, the plugin will:
    * 1. Read opencode.json "agent" section
-   * 2. Read .opencode/agents/*.md files
+   * 2. Read .config/opencode/agents/*.md (preferred) or .opencode/agents/*.md (legacy)
    * 3. Analyze descriptions and prompts to detect domains
    * 4. Generate agentMappings automatically
    *

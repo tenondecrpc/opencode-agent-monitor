@@ -53,7 +53,10 @@ npm run build
 2. Copy the built plugin to your OpenCode plugins directory:
 
 ```bash
-# Project-level (recommended)
+# Project-level (preferred — uses .config/opencode if it exists)
+cp dist/index.js .config/opencode/plugins/agent-monitor.js
+
+# Or legacy location
 cp dist/index.js .opencode/plugins/agent-monitor.js
 
 # Or global
@@ -83,8 +86,11 @@ Then reference the source file in your config:
 Once installed, the plugin automatically starts monitoring. Logs are written to:
 
 ```
-.opencode/agent-monitor.log
+.config/opencode/agent-monitor.log   (preferred — if .config/opencode/ exists)
+.opencode/agent-monitor.log          (legacy fallback — if .opencode/ exists)
 ```
+
+The plugin checks for `.config/opencode/` first. If it doesn't exist, it falls back to `.opencode/`. If neither directory exists, a warning is logged to stderr and `.config/opencode/` is used as the default.
 
 ### Log Format
 
@@ -101,17 +107,17 @@ Each line is a JSON object:
 Use `jq` or any JSON-line parser to analyze logs:
 
 ```bash
-# View all routing mismatches
-jq 'select(.type == "routing.mismatch")' .opencode/agent-monitor.log
+# View all routing mismatches (adjust path to your config location)
+jq 'select(.type == "routing.mismatch")' .config/opencode/agent-monitor.log
 
 # Count tool usage by tool name
-jq -r 'select(.type | startswith("tool.")) | .tool' .opencode/agent-monitor.log | sort | uniq -c | sort -rn
+jq -r 'select(.type | startswith("tool.")) | .tool' .config/opencode/agent-monitor.log | sort | uniq -c | sort -rn
 
 # View all permission requests
-jq 'select(.type | startswith("permission."))' .opencode/agent-monitor.log
+jq 'select(.type | startswith("permission."))' .config/opencode/agent-monitor.log
 
 # Filter by session
-jq 'select(.sessionID == "your-session-id")' .opencode/agent-monitor.log
+jq 'select(.sessionID == "your-session-id")' .config/opencode/agent-monitor.log
 ```
 
 ## Configuration
@@ -120,7 +126,12 @@ The plugin works with zero configuration. All settings use secure defaults.
 
 ### Quick Start: Simple JSON Config (No Code Required)
 
-Create a `.opencode/agent-monitor.json` file in your project:
+Create a `agent-monitor.json` file in your OpenCode config directory:
+
+- **Preferred**: `.config/opencode/agent-monitor.json`
+- **Legacy**: `.opencode/agent-monitor.json`
+
+The plugin checks `.config/opencode/` first, then falls back to `.opencode/`.
 
 ```json
 {
@@ -181,7 +192,7 @@ The plugin has three levels of visibility, from always-on to optional:
 
 | Level | What | Default | Configurable? |
 |---|---|---|---|
-| **File logging** | All events written to `.opencode/agent-monitor.log` | ✅ Always on | No (mandatory) |
+| **File logging** | All events written to `.config/opencode/agent-monitor.log` (or `.opencode/agent-monitor.log` as fallback) | ✅ Always on | No (mandatory) |
 | **Structured logging** | Events sent to OpenCode's internal log viewer via `client.app.log()` | ✅ On | Yes |
 | **Toast notifications** | Brief pop-up messages in the TUI for important events | ❌ Off | Yes |
 
@@ -222,7 +233,7 @@ When enabled (default), events are sent to OpenCode's internal logging system. T
 When `autoDetectAgents` is `true` (default), the plugin:
 
 1. **Reads `opencode.json`** — finds all agents in the `"agent"` section
-2. **Reads `.opencode/agents/*.md`** — finds all markdown-defined agents
+2. **Reads agent markdown files** — finds agents in `.config/opencode/agents/*.md` (preferred) or `.opencode/agents/*.md` (legacy)
 3. **Analyzes descriptions and prompts** — uses the domain detection engine to figure out what each agent does
 4. **Generates mappings** — creates `agentName → domains` mappings automatically
 
@@ -273,7 +284,7 @@ When disabled, only manually configured `agentMappings` are used. If no mappings
 | Option | Default | Description |
 |---|---|---|
 | `enabled` | `true` | Enable or disable the monitor |
-| `logPath` | `.opencode/agent-monitor.log` | Path to the log file |
+| `logPath` | `.config/opencode/agent-monitor.log` (or `.opencode/agent-monitor.log` as fallback) | Path to the log file |
 | `maxLogSize` | `10485760` (10 MB) | Max log file size before rotation (0 = disabled) |
 | `maxRotatedFiles` | `5` | Number of rotated log files to keep |
 | `enableDomainDetection` | `true` | Enable domain detection and routing analysis |
@@ -290,7 +301,8 @@ When disabled, only manually configured `agentMappings` are used. If no mappings
 For full programmatic control, create a plugin wrapper in TypeScript:
 
 ```typescript
-// .opencode/plugins/agent-monitor.ts
+// .config/opencode/plugins/agent-monitor.ts (preferred)
+// or .opencode/plugins/agent-monitor.ts (legacy)
 import {
   AgentMonitor,
   resolveConfigAsync,
