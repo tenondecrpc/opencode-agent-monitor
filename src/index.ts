@@ -452,3 +452,4 @@ export type {
 } from "./types.js"
 export type { AgentMonitorJsonConfig, DiscoveredAgent } from "./json-config.js"
 export { DEFAULT_CONFIG, DEFAULT_DOMAIN_DEFINITIONS } from "./types.js"
+export default AgentMonitor
