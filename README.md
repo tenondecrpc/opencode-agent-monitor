@@ -2,7 +2,7 @@
 
 > Monitor, audit, and analyze agent/subagent routing and tool usage in OpenCode sessions.
 
-[![CI](https://github.com/tenonde/opencode-agent-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/tenonde/opencode-agent-monitor/actions/workflows/ci.yml)
+[![CI](https://github.com/tenondecrpc/opencode-agent-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/tenondecrpc/opencode-agent-monitor/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/opencode-agent-monitor.svg)](https://www.npmjs.com/package/opencode-agent-monitor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
@@ -44,7 +44,7 @@
 1. Clone or download this repository:
 
 ```bash
-git clone https://github.com/tenonde/opencode-agent-monitor.git
+git clone https://github.com/tenondecrpc/opencode-agent-monitor.git
 cd opencode-agent-monitor
 npm install
 npm run build
@@ -66,7 +66,7 @@ cp dist/index.js ~/.config/opencode/plugins/agent-monitor.js
 ### From Source (Development)
 
 ```bash
-git clone https://github.com/tenonde/opencode-agent-monitor.git
+git clone https://github.com/tenondecrpc/opencode-agent-monitor.git
 cd opencode-agent-monitor
 npm install
 npm run dev  # Watch mode for development
@@ -427,7 +427,6 @@ opencode-agent-monitor/
 ├── .prettierrc
 ├── .gitignore
 ├── README.md
-├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── SECURITY.md
 └── LICENSE
@@ -465,8 +464,7 @@ npm test
 ### Publishing
 
 1. Update version in `package.json`
-2. Update `CHANGELOG.md`
-3. Create a git tag: `git tag v1.0.0`
+2. Create a git tag: `git tag v1.0.0`
 4. Push the tag: `git push origin v1.0.0`
 5. The release workflow will publish to npm automatically
 
@@ -476,7 +474,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ### Ways to Contribute
 
-- Report bugs via [GitHub Issues](https://github.com/tenonde/opencode-agent-monitor/issues)
+- Report bugs via [GitHub Issues](https://github.com/tenondecrpc/opencode-agent-monitor/issues)
 - Suggest features or improvements
 - Submit pull requests
 - Improve documentation

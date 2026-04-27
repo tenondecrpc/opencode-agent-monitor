@@ -1,5 +1,5 @@
 import type { Domain, DomainDetection, AgentMonitorConfig } from "./types.js"
-import { getAgentDomains } from "./config.js"
+import { getAgentDomains } from "./agent-mapping-utils.js"
 
 /**
  * Maximum allowed length for a regex pattern string.
@@ -34,7 +34,7 @@ const REDOS_INDICATORS = [
  * - No known ReDoS-inducing structures
  * - Limited repetition quantifiers
  */
-function isSafeRegexPattern(pattern: string): boolean {
+export function isSafeRegexPattern(pattern: string): boolean {
   // Reject excessively long patterns
   if (pattern.length > MAX_PATTERN_LENGTH) {
     return false
@@ -79,23 +79,35 @@ export function detectDomains(
     const matchedKeywords: string[] = []
     let totalScore = 0
 
-    for (const pattern of def.patterns) {
-      // Validate pattern safety before compilation
-      if (!isSafeRegexPattern(pattern)) {
-        // Skip unsafe patterns silently to prevent ReDoS
-        continue
-      }
-
-      try {
-        const regex = new RegExp(pattern, "i")
+    // Use pre-compiled regexes if available (set during config resolution)
+    if (def.compiledPatterns && def.compiledPatterns.length > 0) {
+      for (const regex of def.compiledPatterns) {
         const matches = value.match(regex)
         if (matches && matches.length > 0) {
           matchedKeywords.push(...matches)
           totalScore += matches.length
         }
-      } catch {
-        // Skip invalid regex patterns silently
-        continue
+      }
+    } else {
+      // Fallback: compile on the fly (for backwards compatibility or direct calls)
+      for (const pattern of def.patterns) {
+        // Validate pattern safety before compilation
+        if (!isSafeRegexPattern(pattern)) {
+          // Skip unsafe patterns silently to prevent ReDoS
+          continue
+        }
+
+        try {
+          const regex = new RegExp(pattern, "i")
+          const matches = value.match(regex)
+          if (matches && matches.length > 0) {
+            matchedKeywords.push(...matches)
+            totalScore += matches.length
+          }
+        } catch {
+          // Skip invalid regex patterns silently
+          continue
+        }
       }
     }
 

@@ -73,4 +73,4 @@ Redaction is **enabled by default** and can be disabled via configuration (not r
 
 ## Audit Log
 
-Security-related changes are documented in [CHANGELOG.md](CHANGELOG.md) with the `security` tag.
+Security-related changes are noted in commit messages and pull request descriptions.

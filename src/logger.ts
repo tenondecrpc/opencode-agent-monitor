@@ -9,16 +9,17 @@ import type { AgentMonitorConfig } from "./types.js"
  */
 const SENSITIVE_PATTERNS = [
   // API keys and tokens (handles JSON: "api_key":"value" and plain: api_key: value)
-  /["']?(api[_-]?key|apikey)["']?\s*[:=]\s*["']?[A-Za-z0-9\-_]{16,}/gi,
-  /["']?(secret[_-]?key|secretkey)["']?\s*[:=]\s*["']?[A-Za-z0-9\-_]{16,}/gi,
-  /["']?(access[_-]?token|accesstoken)["']?\s*[:=]\s*["']?[A-Za-z0-9\-_.]{16,}/gi,
-  /["']?(auth[_-]?token|authtoken)["']?\s*[:=]\s*["']?[A-Za-z0-9\-_.]{16,}/gi,
+  // Uses [_-]* to catch double separators (api__key, api--key)
+  /["']?(api[_-]*key|apikey)["']?\s*[:=]\s*["']?[A-Za-z0-9\-_]{16,}/gi,
+  /["']?(secret[_-]*key|secretkey)["']?\s*[:=]\s*["']?[A-Za-z0-9\-_]{16,}/gi,
+  /["']?(access[_-]*token|accesstoken)["']?\s*[:=]\s*["']?[A-Za-z0-9\-_.]{16,}/gi,
+  /["']?(auth[_-]*token|authtoken)["']?\s*[:=]\s*["']?[A-Za-z0-9\-_.]{16,}/gi,
   // AWS credentials
-  /["']?(aws[_-]?access[_-]?key[_-]?id)["']?\s*[:=]\s*["']?[A-Z0-9]{16,}/gi,
-  /["']?(aws[_-]?secret[_-]?access[_-]?key)["']?\s*[:=]\s*["']?[A-Za-z0-9/+=]{24,}/gi,
+  /["']?(aws[_-]*access[_-]*key[_-]*id)["']?\s*[:=]\s*["']?[A-Z0-9]{16,}/gi,
+  /["']?(aws[_-]*secret[_-]*access[_-]*key)["']?\s*[:=]\s*["']?[A-Za-z0-9/+=]{24,}/gi,
   // Generic secrets
   /["']?(password|passwd|pwd)["']?\s*[:=]\s*["']?[^\s"']{8,}/gi,
-  /["']?(private[_-]?key)["']?\s*[:=]\s*["']?[^\s"']{16,}/gi,
+  /["']?(private[_-]*key)["']?\s*[:=]\s*["']?[^\s"']{16,}/gi,
   // Bearer tokens
   /bearer\s+[A-Za-z0-9\-_.]{20,}/gi,
   // Connection strings with passwords (expanded protocol coverage)
@@ -29,7 +30,24 @@ const SENSITIVE_PATTERNS = [
   // Bearer tokens in Authorization headers (common in curl commands, etc.)
   /authorization["']?\s*[:=]\s*["']?bearer\s+[A-Za-z0-9\-_.+/]{20,}/gi,
   // API keys in URL query parameters
-  /[?&](api[_-]?key|token|access[_-]?key|secret[_-]?key)=([A-Za-z0-9\-_]{16,})/gi,
+  /[?&](api[_-]*key|token|access[_-]*key|secret[_-]*key)=([A-Za-z0-9\-_]{16,})/gi,
+  // GitHub personal access tokens (ghp_, gho_, ghu_, ghs_, github_pat_)
+  /gh[pousr]_[A-Za-z0-9_]{36,}/gi,
+  /github_pat_[A-Za-z0-9_]{22,}_[A-Za-z0-9_]{50,}/gi,
+  // Slack tokens (xoxb-, xoxp-, xoxa-, xoxr-, xoxe-)
+  /xox[abprse]-[A-Za-z0-9-]{10,}/gi,
+  // Stripe keys (sk_live_, sk_test_, pk_live_, pk_test_)
+  /[sr]k_(live|test)_[A-Za-z0-9]{20,}/gi,
+  // SendGrid API keys
+  /SG\.[A-Za-z0-9_-]{22,}\.[A-Za-z0-9_-]{22,}/gi,
+  // SSH/PEM private key blocks
+  /-----BEGIN\s+(RSA\s+|OPENSSH\s+|EC\s+|DSA\s+)?PRIVATE\s+KEY-----/gi,
+  // Basic auth headers
+  /authorization["']?\s*[:=]\s*["']?basic\s+[A-Za-z0-9+/=]{8,}/gi,
+  // JWT tokens (standalone, not preceded by a key name)
+  /eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}/gi,
+  // Generic bare "token" key (catches cases like "token": "value")
+  /["']?\btoken\b["']?\s*[:=]\s*["'][A-Za-z0-9\-_.+/]{16,}["']/gi,
 ]
 
 /**
@@ -102,6 +120,7 @@ export function redactObject<T>(obj: T): T {
  */
 export class StructuredLogger {
   private config: AgentMonitorConfig
+  private rotating = false
 
   constructor(config: AgentMonitorConfig) {
     this.config = config
@@ -131,8 +150,15 @@ export class StructuredLogger {
       const logDir = path.dirname(this.config.logPath)
       await fs.mkdir(logDir, { recursive: true, mode: 0o700 })
 
-      // Check if rotation is needed
-      await this.maybeRotate()
+      // Check if rotation is needed (with concurrency lock)
+      if (!this.rotating) {
+        this.rotating = true
+        try {
+          await this.maybeRotate()
+        } finally {
+          this.rotating = false
+        }
+      }
 
       // Append the log line
       await fs.appendFile(this.config.logPath, line, { encoding: "utf-8" })

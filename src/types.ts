@@ -27,6 +27,12 @@ export interface DomainDefinition {
   name: Domain
   /** Regex patterns (as strings) that indicate this domain in task text */
   patterns: string[]
+  /**
+   * Pre-compiled regex objects for performance.
+   * Populated during config resolution — do not set manually.
+   * @internal
+   */
+  compiledPatterns?: RegExp[]
 }
 
 /**
