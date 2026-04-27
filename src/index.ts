@@ -443,28 +443,4 @@ export const AgentMonitor: Plugin = async ({ project, client, directory }) => {
   }
 }
 
-// Re-export types and utilities for advanced usage
-export { resolveConfig, resolveConfigAsync } from "./config.js"
-export { getAgentDomains } from "./agent-mapping-utils.js"
-export {
-  StructuredLogger,
-  redactSensitiveData,
-  redactObject,
-} from "./logger.js"
-export { detectDomains, detectAgentMismatch } from "./domain-detector.js"
-export { discoverAgents, generateAgentMappings } from "./agent-discovery.js"
-export type {
-  Domain,
-  DomainDetection,
-  AgentMonitorConfig,
-  AgentMonitorPlugin,
-  DomainDefinition,
-  AgentDomainMapping,
-} from "./types.js"
-export type { AgentMonitorJsonConfig, DiscoveredAgent } from "./json-config.js"
-// Note: DEFAULT_CONFIG and DEFAULT_DOMAIN_DEFINITIONS are intentionally not
-// re-exported here. OpenCode's plugin loader iterates over all module exports
-// and expects each one to be a function. Non-function exports (objects, arrays)
-// cause a "Plugin export is not a function" error. Import them directly from
-// "./types.js" if needed.
 export default AgentMonitor
