@@ -12,10 +12,10 @@ export interface AgentMonitorJsonConfig {
    */
   enabled?: boolean
 
-    /**
-     * Path to the log file (relative to project root or absolute).
-     * @default ".config/opencode/agent-monitor.log" (or ".opencode/agent-monitor.log" as fallback)
-     */
+  /**
+   * Path to the log file (relative to project root or absolute).
+   * @default ".config/opencode/agent-monitor.log" (or ".opencode/agent-monitor.log" as fallback)
+   */
   logPath?: string
 
   /**
