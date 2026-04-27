@@ -377,5 +377,3 @@ export function resolveConfig(
 
   return config
 }
-
-

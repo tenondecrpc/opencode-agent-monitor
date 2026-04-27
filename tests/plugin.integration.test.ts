@@ -4,7 +4,12 @@ import path from "node:path"
 import { AgentMonitor } from "../src/index.js"
 
 const TEST_DIR = path.join(process.cwd(), ".test-plugin-integration")
-const TEST_LOG_PATH = path.join(TEST_DIR, "test-integration.log")
+const TEST_LOG_PATH = path.join(
+  TEST_DIR,
+  ".config",
+  "opencode",
+  "agent-monitor.log"
+)
 
 beforeEach(async () => {
   await fs.mkdir(TEST_DIR, { recursive: true })
@@ -59,7 +64,7 @@ describe("AgentMonitor plugin initialization", () => {
     expect(plugin).toHaveProperty("tui.toast.show")
 
     // All handlers should be functions
-    for (const [key, value] of Object.entries(plugin)) {
+    for (const [_key, value] of Object.entries(plugin)) {
       expect(typeof value).toBe("function")
     }
   })
@@ -95,8 +100,8 @@ describe("session.error handler", () => {
 
     // Read the log file and check the error was truncated
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
-    expect(entry.error.message.length).toBeLessThanOrEqual(500)
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
+    expect(entry.error.length).toBeLessThanOrEqual(500)
   })
 
   test("handles string errors", async () => {
@@ -109,7 +114,7 @@ describe("session.error handler", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.error).toBe("Something went wrong")
   })
 
@@ -123,7 +128,7 @@ describe("session.error handler", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.error.name).toBe("Error")
     expect(entry.error.message).toBe("Test error message")
   })
@@ -138,7 +143,7 @@ describe("session.error handler", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.error).toBe("42")
   })
 
@@ -193,7 +198,7 @@ describe("tool execution handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("tool.execute.before")
     expect(entry.tool).toBe("bash")
   })
@@ -215,7 +220,7 @@ describe("tool execution handlers", () => {
     )
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("tool.execute.after")
     expect(entry.tool).toBe("bash")
     // Domain detection should have detected frontend
@@ -241,12 +246,16 @@ describe("tool execution handlers", () => {
       sessionID: "test-session",
     } as any)
 
-    // No log file should be created for excluded tools
-    const exists = await fs
-      .stat(TEST_LOG_PATH)
-      .then(() => true)
-      .catch(() => false)
-    expect(exists).toBe(false)
+    // Log file exists (plugin.loaded), but no tool entries should be present
+    const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
+    const entries = content
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line))
+    const toolEntries = entries.filter((e) =>
+      e.type?.startsWith("tool.execute")
+    )
+    expect(toolEntries.length).toBe(0)
   })
 })
 
@@ -261,7 +270,7 @@ describe("permission handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("permission.asked")
     expect(entry.tool).toBe("bash")
   })
@@ -277,7 +286,7 @@ describe("permission handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("permission.replied")
     expect(entry.decision).toBe("allow")
   })
@@ -310,9 +319,7 @@ describe("message.updated handler", () => {
       path.join(configDir, "agent-monitor.json"),
       JSON.stringify({
         autoDetectAgents: false,
-        agentMappings: [
-          { agentName: "backend-agent", domains: ["backend"] },
-        ],
+        agentMappings: [{ agentName: "backend-agent", domains: ["backend"] }],
       })
     )
 
@@ -395,7 +402,7 @@ describe("session lifecycle handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("session.created")
     expect(entry.sessionID).toBe("new-session")
   })
@@ -409,7 +416,7 @@ describe("session lifecycle handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("session.updated")
   })
 
@@ -422,7 +429,7 @@ describe("session lifecycle handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("session.idle")
   })
 
@@ -435,7 +442,7 @@ describe("session lifecycle handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("session.deleted")
   })
 
@@ -448,7 +455,7 @@ describe("session lifecycle handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("session.compacted")
   })
 })
@@ -464,7 +471,7 @@ describe("other handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("file.edited")
     expect(entry.filePath).toBe("/src/index.ts")
   })
@@ -479,7 +486,7 @@ describe("other handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("command.executed")
     expect(entry.command).toBe("npm test")
   })
@@ -493,7 +500,7 @@ describe("other handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("tui.toast.show")
     expect(entry.message).toBe("Test toast")
   })
@@ -507,7 +514,7 @@ describe("other handlers", () => {
     } as any)
 
     const content = await fs.readFile(TEST_LOG_PATH, "utf-8")
-    const entry = JSON.parse(content.trim().split("\n")[0])
+    const entry = JSON.parse(content.trim().split("\n").at(-1))
     expect(entry.type).toBe("event")
     expect(entry.eventType).toBe("custom.event")
   })

@@ -49,8 +49,8 @@ describe("isSafeRegexPattern", () => {
   })
 
   test("rejects patterns with too many repetition quantifiers (>5)", () => {
-    // 6 quantifiers: a+b+c+d+e+f
-    expect(isSafeRegexPattern("a+b+c+d+e+f")).toBe(false)
+    // 6 quantifiers: a+b+c+d+e+f+
+    expect(isSafeRegexPattern("a+b+c+d+e+f+")).toBe(false)
   })
 
   test("accepts patterns with exactly 5 repetition quantifiers", () => {
